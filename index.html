@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesas de Marbella — Guía gastronómica del Casco Antiguo</title>
+<meta name="description" content="Mapa interactivo de todos los restaurantes, bares y cafeterías del Casco Antiguo y el centro de Marbella. Filtra por tipo, cocina y accesibilidad.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23173C6B'/%3E%3Cpath d='M11 7v7a2 2 0 002 2v9M13 7v5M11 7v5M21 7c-1.5 0-2.5 2-2.5 5.5S19.5 18 21 18v7' stroke='%23C4552B' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<style>
+:root{
+  --cal:#FCFBF7;          /* cal / whitewash */
+  --paper:#F5F1E8;        /* fondo cálido */
+  --ink:#182338;          /* azul tinta muy oscuro */
+  --ink-soft:#4A5568;
+  --cobalt:#1E4E8C;       /* azul azulejo */
+  --cobalt-deep:#173C6B;
+  --terra:#C4552B;        /* terracota / naranjos */
+  --amber:#C08A2A;        /* cafeterías */
+  --olive:#6E7A55;        /* para llevar */
+  --line:#E4DCCB;
+  --line-strong:#D6CBB2;
+  --shadow:0 1px 2px rgba(24,35,56,.04),0 8px 24px rgba(24,35,56,.08);
+  --shadow-lg:0 12px 40px rgba(24,35,56,.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Manrope',system-ui,sans-serif;
+  color:var(--ink);
+  background:var(--cal);
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+}
+.mono{font-family:'Space Mono',monospace}
+
+/* ---------- Cabecera ---------- */
+header{
+  flex:0 0 auto;
+  background:var(--cobalt-deep);
+  color:var(--cal);
+  position:relative;overflow:hidden;
+  border-bottom:3px solid var(--terra);
+}
+header .tiles{position:absolute;inset:0;opacity:.10;pointer-events:none}
+.head-inner{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:14px 26px;max-width:1600px;margin:0 auto;
+}
+.brand{display:flex;align-items:baseline;gap:14px;min-width:0}
+.brand h1{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:800;font-size:26px;letter-spacing:-.02em;line-height:1;
+  color:var(--cal);white-space:nowrap;
+}
+.brand h1 span{color:var(--terra)}
+.brand .kicker{
+  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(252,251,247,.62);white-space:nowrap;
+}
+.stats{display:flex;gap:26px;flex-shrink:0}
+.stat{text-align:right;line-height:1}
+.stat b{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700;display:block;color:var(--cal)}
+.stat small{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(252,251,247,.6);font-weight:600}
+
+/* ---------- Barra de filtros ---------- */
+.filters{
+  flex:0 0 auto;background:var(--cal);border-bottom:1px solid var(--line);
+  padding:12px 26px;
+}
+.filters-inner{max-width:1600px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.fgroup{display:flex;align-items:center;gap:8px;min-width:0}
+.flabel{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+
+.search{position:relative;flex:1 1 220px;min-width:180px;max-width:320px}
+.search input{
+  width:100%;padding:9px 14px 9px 36px;border:1px solid var(--line-strong);border-radius:10px;
+  font-family:'Manrope';font-size:14px;color:var(--ink);background:#fff;
+}
+.search input:focus{outline:2px solid var(--cobalt);outline-offset:0;border-color:transparent}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-soft)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-family:'Manrope';font-size:13px;font-weight:600;color:var(--ink-soft);
+  padding:7px 13px;border:1px solid var(--line-strong);border-radius:999px;background:#fff;
+  cursor:pointer;transition:all .15s ease;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;
+}
+.chip:hover{border-color:var(--cobalt);color:var(--cobalt)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--cal)}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.chip[aria-pressed="true"] .dot{box-shadow:0 0 0 2px rgba(252,251,247,.35)}
+
+select{
+  font-family:'Manrope';font-size:13.5px;font-weight:600;color:var(--ink);
+  padding:8px 32px 8px 12px;border:1px solid var(--line-strong);border-radius:10px;background:#fff;
+  cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;
+}
+select:focus{outline:2px solid var(--cobalt);border-color:transparent}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{
+  font-family:'Manrope';font-size:13px;font-weight:600;color:var(--ink-soft);
+  padding:8px 13px;border:0;background:transparent;cursor:pointer;border-right:1px solid var(--line);
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--cobalt);color:#fff}
+.btn-reset{
+  font-family:'Manrope';font-size:13px;font-weight:600;color:var(--terra);
+  background:none;border:0;cursor:pointer;padding:6px 4px;text-decoration:underline;text-underline-offset:3px;
+}
+.btn-reset:hover{color:var(--cobalt)}
+
+/* ---------- Cuerpo: lista + mapa ---------- */
+.body{flex:1 1 auto;display:flex;min-height:0;max-width:1600px;margin:0 auto;width:100%}
+.panel{
+  flex:0 0 384px;background:var(--cal);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;
+}
+.panel-head{
+  padding:14px 20px 10px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+}
+.panel-head .count{font-family:'Bricolage Grotesque';font-size:17px;font-weight:700}
+.panel-head .count span{color:var(--terra)}
+.panel-head .sub{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.list{overflow-y:auto;flex:1 1 auto;padding:6px 0}
+.list::-webkit-scrollbar{width:9px}
+.list::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:9px;border:2px solid var(--cal)}
+
+.card{
+  padding:13px 20px;border-bottom:1px solid var(--line);cursor:pointer;
+  display:grid;grid-template-columns:auto 1fr auto;gap:3px 12px;align-items:start;transition:background .12s;
+}
+.card:hover{background:#fff}
+.card.active{background:#fff;box-shadow:inset 3px 0 0 var(--terra)}
+.card .tnum{font-family:'Space Mono',monospace;font-size:11px;color:var(--ink-soft);grid-row:1/3;padding-top:3px}
+.card .name{font-family:'Bricolage Grotesque';font-weight:700;font-size:16px;line-height:1.2;grid-column:2}
+.card .addr{font-size:12.5px;color:var(--ink-soft);grid-column:2;line-height:1.35}
+.card .tipo-tag{grid-column:3;grid-row:1;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;color:#fff}
+.card .cuis{grid-column:2;display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.card .cuis span{font-size:11px;color:var(--cobalt-deep);background:rgba(30,78,140,.08);padding:2px 7px;border-radius:5px;font-weight:600}
+.card .acc{grid-column:3;grid-row:2;align-self:end;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.card .acc.si{color:var(--olive)}
+.card .acc.no{color:#B08A8A}
+
+.empty{padding:50px 24px;text-align:center;color:var(--ink-soft)}
+.empty b{font-family:'Bricolage Grotesque';display:block;font-size:17px;color:var(--ink);margin-bottom:6px}
+
+#map{flex:1 1 auto;min-height:0;background:#dfe6ea;z-index:0}
+
+/* ---------- Marcadores ---------- */
+.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+  border:2.5px solid #fff;box-shadow:0 3px 8px rgba(24,35,56,.35);position:relative}
+.pin.acc::after{content:"";position:absolute;inset:5px;border:1.5px solid rgba(255,255,255,.9);border-radius:50%}
+.pin-wrap{transition:transform .15s}
+.pin-wrap.bump{transform:scale(1.35);z-index:1000}
+
+.leaflet-popup-content-wrapper{border-radius:12px;box-shadow:var(--shadow-lg);border:1px solid var(--line)}
+.leaflet-popup-content{margin:15px 17px;font-family:'Manrope'}
+.pop .pt{font-family:'Bricolage Grotesque';font-weight:800;font-size:18px;line-height:1.15;color:var(--ink);padding-right:8px}
+.pop .paddr{font-size:12.5px;color:var(--ink-soft);margin:5px 0 9px}
+.pop .prow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+.pop .ptag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;color:#fff}
+.pop .pcuis{font-size:11px;color:var(--cobalt-deep);background:rgba(30,78,140,.08);padding:3px 8px;border-radius:6px;font-weight:600}
+.pop .pacc{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;margin-bottom:8px}
+.pop .pobs{font-size:12px;color:var(--ink-soft);font-style:italic;border-top:1px dashed var(--line-strong);padding-top:8px;margin-top:2px}
+.pop a.maps{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--cobalt);text-decoration:none;margin-top:9px}
+.pop a.maps:hover{text-decoration:underline}
+.marker-cluster-sm,.marker-cluster div{background:var(--cobalt);color:#fff;font-family:'Bricolage Grotesque';font-weight:700}
+.marker-cluster{background:rgba(30,78,140,.35)}
+.marker-cluster div{width:34px;height:34px;margin:3px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+
+/* ---------- Leyenda ---------- */
+.legend{
+  position:absolute;bottom:18px;left:18px;z-index:500;background:rgba(252,251,247,.96);
+  border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);
+  font-size:12px;backdrop-filter:blur(4px);
+}
+.legend h4{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;font-weight:700}
+.legend .row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-weight:600;color:var(--ink)}
+.legend .row:last-child{margin-bottom:0}
+.legend .sw{width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.legend .accnote{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--ink-soft);font-weight:500;display:flex;align-items:center;gap:7px;font-size:11.5px}
+.legend .ring{width:14px;height:14px;border-radius:50%;background:var(--ink-soft);position:relative;flex-shrink:0}
+.legend .ring::after{content:"";position:absolute;inset:3px;border:1.5px solid #fff;border-radius:50%}
+
+/* ---------- Móvil ---------- */
+.mobile-toggle{display:none}
+footer{flex:0 0 auto;background:var(--ink);color:rgba(252,251,247,.7);font-size:11.5px;padding:9px 26px;text-align:center;font-family:'Space Mono',monospace;letter-spacing:.03em}
+footer span{color:var(--terra)}
+
+@media(max-width:1080px){.panel{flex-basis:330px}}
+@media(max-width:820px){
+  .head-inner{flex-wrap:wrap;gap:10px;padding:12px 18px}
+  .stats{gap:18px}.stat b{font-size:18px}
+  .filters{padding:10px 18px}
+  .body{position:relative}
+  .panel{position:absolute;inset:0;z-index:400;flex-basis:auto;width:100%;border-right:0}
+  .panel.hide{display:none}
+  #map{position:absolute;inset:0}
+  .mobile-toggle{display:inline-flex;position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:600;
+    background:var(--ink);color:var(--cal);border:0;border-radius:999px;padding:12px 22px;font-family:'Manrope';
+    font-weight:700;font-size:14px;gap:8px;align-items:center;box-shadow:var(--shadow-lg);cursor:pointer}
+  .legend{display:none}
+}
+@media(max-width:480px){
+  .brand h1{font-size:21px}.brand .kicker{display:none}
+  .stat:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <svg class="tiles" width="100%" height="100%" aria-hidden="true"><defs>
+    <pattern id="az" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="46" height="46" fill="none"/>
+      <path d="M23 4 L42 23 L23 42 L4 23 Z" fill="none" stroke="#fff" stroke-width="1.1"/>
+      <circle cx="23" cy="23" r="4.5" fill="none" stroke="#fff" stroke-width="1.1"/>
+      <path d="M23 0 L23 8 M23 38 L23 46 M0 23 L8 23 M38 23 L46 23" stroke="#fff" stroke-width="1.1"/>
+    </pattern></defs>
+    <rect width="100%" height="100%" fill="url(#az)"/>
+  </svg>
+  <div class="head-inner">
+    <div class="brand">
+      <h1>Mesas de <span>Marbella</span></h1>
+      <span class="kicker">Censo gastronómico · Casco Antiguo</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="s-total">285</b><small>Locales</small></div>
+      <div class="stat"><b id="s-acc">126</b><small>Accesibles</small></div>
+      <div class="stat"><b id="s-zonas">5</b><small>Zonas</small></div>
+    </div>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="filters-inner">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Buscar por nombre…" autocomplete="off">
+    </div>
+    <div class="fgroup"><span class="flabel">Tipo</span><div class="chips" id="tipoChips"></div></div>
+    <div class="fgroup"><span class="flabel">Cocina</span>
+      <select id="cocina"><option value="">Todas</option></select>
+    </div>
+    <div class="fgroup"><span class="flabel">Zona</span>
+      <select id="zona"><option value="">Todas</option></select>
+    </div>
+    <div class="fgroup"><span class="flabel">Accesible</span>
+      <div class="seg" id="accSeg" role="group">
+        <button data-acc="" aria-pressed="true">Todos</button>
+        <button data-acc="si" aria-pressed="false">Sí</button>
+        <button data-acc="no" aria-pressed="false">No</button>
+      </div>
+    </div>
+    <button class="btn-reset" id="reset">Limpiar filtros</button>
+  </div>
+</div>
+
+<div class="body">
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <div class="count"><span id="c-num">285</span> locales</div>
+      <div class="sub" id="c-sub">de 285 en total</div>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+  <div style="flex:1 1 auto;position:relative;min-height:0;display:flex">
+    <div id="map"></div>
+    <div class="legend">
+      <h4>Tipo de local</h4>
+      <div class="row"><span class="sw" style="background:#1E4E8C"></span>Restaurante</div>
+      <div class="row"><span class="sw" style="background:#C4552B"></span>Bar</div>
+      <div class="row"><span class="sw" style="background:#C08A2A"></span>Cafetería</div>
+      <div class="row"><span class="sw" style="background:#6E7A55"></span>Para llevar</div>
+      <div class="accnote"><span class="ring"></span>El aro interior indica local accesible</div>
+    </div>
+  </div>
+</div>
+<button class="mobile-toggle" id="mtoggle">Ver mapa</button>
+
+<footer>Datos: barrida de campo del Casco Antiguo y centro de Marbella · <span id="f-count">285</span> establecimientos · Cartografía © OpenStreetMap</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

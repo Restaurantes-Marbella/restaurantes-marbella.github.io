@@ -1,0 +1,10 @@
+node_modules/
+package.json
+package-lock.json
+raw.b64
+barrida.csv
+_streets.json
+_streetcoords.json
+restaurantes.json
+shot.js
+shot-*.png

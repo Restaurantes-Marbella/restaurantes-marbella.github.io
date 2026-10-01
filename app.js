@@ -187,8 +187,8 @@
 
   function initMap() {
     map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView([36.5095, -4.8855], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20, subdomains: 'abcd',
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19,
     }).addTo(map);
 
     cluster = L.markerClusterGroup({

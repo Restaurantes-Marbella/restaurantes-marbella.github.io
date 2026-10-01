@@ -47,6 +47,9 @@
     const a = accLabel(r.accesible);
     const cuis = r.cocinas.map(c => `<span class="pcuis">${c}</span>`).join('');
     const obs = r.obs ? `<div class="pobs">${r.obs}</div>` : '';
+    // Sin portal localizado (y fuera de plazas o del Mercado): el pin va a un punto aproximado de la calle
+    const aprox = r.precision === 'calle' && !/^(Plaza|Mercado)/.test(r.calle)
+      ? '<div class="pobs">Ubicación aproximada: punto de la calle, no del portal.</div>' : '';
     const query = encodeURIComponent(r.nombre + ', ' + addr(r) + ', Marbella');
     return `<div class="pop">
       <div class="pt">${r.nombre}</div>
@@ -55,7 +58,7 @@
         <span class="ptag" style="background:${color}">${r.tipo}</span>${cuis}
       </div>
       <div class="pacc" style="color:${r.accesible === 'si' ? '#6E7A55' : '#B08A8A'}">${a.icon} ${a.txt}</div>
-      ${obs}
+      ${obs}${aprox}
       <a class="maps" href="https://www.google.com/maps/search/?api=1&query=${query}" target="_blank" rel="noopener">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
         Ver en Google Maps

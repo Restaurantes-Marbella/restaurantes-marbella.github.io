@@ -187,9 +187,18 @@
 
   function initMap() {
     map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView([36.5095, -4.8855], 16);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+    const callejero = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap', maxZoom: 19,
     }).addTo(map);
+    const satelite = L.layerGroup([
+      L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics', maxZoom: 19,
+      }),
+      L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
+      L.tileLayer(ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
+    ]);
+    L.control.layers({ 'Callejero': callejero, 'Satélite': satelite }, null, { position: 'topright', collapsed: false }).addTo(map);
 
     cluster = L.markerClusterGroup({
       maxClusterRadius: 42, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
